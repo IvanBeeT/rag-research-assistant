@@ -1,0 +1,34 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+
+# Vector database — rebuilt by running ingest.py
+.chromadb/
+
+# Research papers — too large for git, add your own
+data/papers/*.pdf
+
+# Embedding model cache
+.cache/
+sentence_transformers/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/

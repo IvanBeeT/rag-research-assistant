@@ -1,0 +1,34 @@
+services:
+  ollama:
+    image: ollama/ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    # Uncomment the block below to enable GPU passthrough on Linux with NVIDIA Container Toolkit.
+    # On Windows/macOS, Ollama runs natively and this compose file is used for the app only.
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  app:
+    build: .
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./data:/app/data
+      - ./.chromadb:/app/.chromadb
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    env_file:
+      - path: .env
+        required: false
+    depends_on:
+      - ollama
+
+volumes:
+  ollama_data:

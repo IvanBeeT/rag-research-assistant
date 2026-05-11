@@ -1,0 +1,6 @@
+[server]
+# Don't watch site-packages for file changes — stops transformers/torchvision noise
+folderWatchBlacklist = [".venv", "*.venv", "__pycache__"]
+
+[browser]
+gatherUsageStats = false
