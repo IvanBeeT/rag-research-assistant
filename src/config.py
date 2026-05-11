@@ -21,6 +21,7 @@ OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
 
 # Embeddings — runs locally via sentence-transformers
 EMBED_MODEL = os.getenv("EMBED_MODEL", "BAAI/bge-base-en-v1.5")
+EMBED_DEVICE = os.getenv("EMBED_DEVICE", "cuda")
 
 # Chunking strategy
 # 800 chars ≈ 150-200 tokens. Overlap ensures context isn't lost at boundaries.

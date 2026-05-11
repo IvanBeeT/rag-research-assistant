@@ -26,7 +26,7 @@ def _get_model() -> SentenceTransformer:
 
         @st.cache_resource(show_spinner="Loading embedding model...")
         def _load():
-            return SentenceTransformer(config.EMBED_MODEL)
+            return SentenceTransformer(config.EMBED_MODEL, device=config.EMBED_DEVICE)
 
         return _load()
     except Exception:
@@ -35,8 +35,8 @@ def _get_model() -> SentenceTransformer:
 
 @lru_cache(maxsize=1)
 def _load_model_cached() -> SentenceTransformer:
-    print(f"Loading embedding model: {config.EMBED_MODEL}")
-    return SentenceTransformer(config.EMBED_MODEL)
+    print(f"Loading embedding model: {config.EMBED_MODEL} on {config.EMBED_DEVICE}")
+    return SentenceTransformer(config.EMBED_MODEL, device=config.EMBED_DEVICE)
 
 
 def embed_texts(texts: list[str]) -> list[list[float]]:
