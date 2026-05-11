@@ -14,9 +14,27 @@ from sentence_transformers import SentenceTransformer
 from src import config
 
 
-@lru_cache(maxsize=1)
 def _get_model() -> SentenceTransformer:
-    """Load the embedding model once and cache it for the process lifetime."""
+    """Return the embedding model, using Streamlit's cache when available.
+
+    st.cache_resource keeps a single model instance alive across all Streamlit
+    reruns and users. Falls back to lru_cache when running outside Streamlit
+    (e.g. ingest.py CLI), which also loads the model only once per process.
+    """
+    try:
+        import streamlit as st
+
+        @st.cache_resource(show_spinner="Loading embedding model...")
+        def _load():
+            return SentenceTransformer(config.EMBED_MODEL)
+
+        return _load()
+    except Exception:
+        return _load_model_cached()
+
+
+@lru_cache(maxsize=1)
+def _load_model_cached() -> SentenceTransformer:
     print(f"Loading embedding model: {config.EMBED_MODEL}")
     return SentenceTransformer(config.EMBED_MODEL)
 
