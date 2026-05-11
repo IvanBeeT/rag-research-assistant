@@ -2,8 +2,6 @@
 
 A fully local RAG chatbot for querying ML and AI research papers. Upload a PDF, ask questions about it, and get answers that are grounded in the actual content of the paper with citations showing exactly where the information came from.
 
-Nothing leaves your machine. No API keys, no cloud services.
-
 ![Research Assistant UI](docs/Screenshot.png)
 
 ## How it works
@@ -39,13 +37,6 @@ llm.py              Passes retrieved context + question to llama3.1:8b via Ollam
 Streamlit UI        Streams the response token-by-token, renders source citations
 ```
 
-A few decisions worth explaining:
-
-**No LangChain.** The pipeline is built directly on top of ChromaDB, sentence-transformers, and the Ollama Python client. It keeps things transparent and easy to debug. The whole retrieval pipeline is around 200 lines of Python.
-
-**The embedding model and the LLM are separate.** The embedding model (BAAI/bge-base-en-v1.5, 109M parameters) only converts text to vectors. The LLM only generates text. Keeping them separate means you can swap either one out without touching the other.
-
-**ChromaDB over FAISS.** FAISS is faster for pure similarity search but it only stores vectors with no metadata and no persistence out of the box. ChromaDB stores metadata alongside the vectors, persists everything to disk automatically, and supports filtered queries, which is what makes citations possible.
 
 ## Stack
 
@@ -125,20 +116,6 @@ ollama pull qwen2.5:14b
 ```
 
 To index papers in bulk rather than uploading through the UI, drop PDFs into `data/papers/` and run `python ingest.py`.
-
-## Extending the project
-
-The code is structured so that new features can be added without rewriting existing parts.
-
-**Swap the LLM** by changing `OLLAMA_MODEL` in `.env`. The system prompt in `src/generation/llm.py` may need tweaking depending on the model.
-
-**Multiple paper collections** can be added by exposing a `collection_name` parameter in `vectorstore.py` and adding a collection picker to the sidebar.
-
-**Conversation history** can be added by accumulating the message list in `llm.py` and passing prior turns back with each request. It's stateless by design right now to keep answers focused on the retrieved context.
-
-**Hybrid search** (vector + BM25 keyword matching) would improve results for queries with rare terms or proper nouns that embeddings don't handle well.
-
-**Re-ranking** with a cross-encoder after the initial retrieval step would improve precision further. The typical pattern is to retrieve the top 20 chunks, re-rank them, and pass the best 5 to the LLM.
 
 ## Acknowledgements
 
