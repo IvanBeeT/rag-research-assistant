@@ -4,7 +4,7 @@ A local RAG (Retrieval-Augmented Generation) chatbot for querying ML and AI rese
 
 Everything runs on your machine. No API keys, no external services, no data leaving your hardware.
 
-![Research Assistant UI](docs/screenshot.png)
+![Research Assistant UI](docs/Screenshot.png)
 
 ---
 
