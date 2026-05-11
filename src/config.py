@@ -21,7 +21,14 @@ OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
 
 # Embeddings — runs locally via sentence-transformers
 EMBED_MODEL = os.getenv("EMBED_MODEL", "BAAI/bge-base-en-v1.5")
-EMBED_DEVICE = os.getenv("EMBED_DEVICE", "cuda")
+def _default_device() -> str:
+    try:
+        import torch
+        return "cuda" if torch.cuda.is_available() else "cpu"
+    except ImportError:
+        return "cpu"
+
+EMBED_DEVICE = os.getenv("EMBED_DEVICE", _default_device())
 
 # Chunking strategy
 # 800 chars ≈ 150-200 tokens. Overlap ensures context isn't lost at boundaries.
