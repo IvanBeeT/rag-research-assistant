@@ -1,16 +1,16 @@
 # Research Assistant
 
-A local RAG (Retrieval-Augmented Generation) chatbot for querying ML and AI research papers. Upload PDFs, ask natural language questions, and get answers grounded in the actual content of the papers, with citations showing exactly which paper and passage each answer came from.
+A fully local RAG chatbot for querying ML and AI research papers. Upload a PDF, ask questions about it, and get answers that are grounded in the actual content of the paper with citations showing exactly where the information came from.
 
-Everything runs on your machine. No API keys, no external services, no data leaving your hardware.
+Nothing leaves your machine. No API keys, no cloud services.
 
 ![Research Assistant UI](docs/Screenshot.png)
 
-## What it does and why it works
+## How it works
 
-When you upload a research paper, the system doesn't just store the text. It converts every passage into a mathematical representation of its meaning, called an embedding vector, and stores those vectors in a local database. When you ask a question, your question gets converted into the same kind of vector, and the system finds the passages whose meaning is closest to your question using cosine similarity. Those passages are then handed to a local language model, which reads them and writes a focused answer.
+When you upload a paper, the system splits the text into overlapping chunks and converts each one into an embedding vector, which is essentially a mathematical representation of what that chunk means. Those vectors get stored in a local database. When you ask a question, the question gets embedded in the same way, and the system finds the chunks that are closest in meaning using cosine similarity. Those chunks get passed to a local language model along with your question, and it writes an answer based on what it just read.
 
-This approach is called RAG because the model *retrieves* relevant information before *generating* its answer, rather than relying on what it memorized during training. The result is an assistant that can answer precise questions about documents it has never seen before, with verifiable sources. If the papers don't contain the answer, it says so.
+This is called RAG (Retrieval-Augmented Generation) because the model retrieves relevant content before generating a response, rather than relying on what it learnt during training. The main benefit is that it can answer questions about documents it has never seen, and you can verify every answer against the source.
 
 ## Architecture
 
@@ -41,11 +41,11 @@ Streamlit UI        Streams the response token-by-token, renders source citation
 
 A few decisions worth explaining:
 
-**No LangChain.** The pipeline is built directly on ChromaDB, sentence-transformers, and the Ollama Python client. This keeps each component inspectable, makes the data flow obvious, and means there are no framework abstractions to debug when something goes wrong. The entire retrieval pipeline is around 200 lines of Python.
+**No LangChain.** The pipeline is built directly on top of ChromaDB, sentence-transformers, and the Ollama Python client. It keeps things transparent and easy to debug. The whole retrieval pipeline is around 200 lines of Python.
 
-**Separate embedding model and LLM.** The embedding model (BAAI/bge-base-en-v1.5, 109M parameters) converts text to vectors, which is a fundamentally different task from generating text. Keeping them separate means either can be swapped independently without touching the other.
+**The embedding model and the LLM are separate.** The embedding model (BAAI/bge-base-en-v1.5, 109M parameters) only converts text to vectors. The LLM only generates text. Keeping them separate means you can swap either one out without touching the other.
 
-**ChromaDB over FAISS.** FAISS is a fast similarity index but stores only vectors, with no metadata support and no persistence out of the box. ChromaDB stores metadata (paper title, chunk index) alongside vectors, persists to disk automatically, and supports filtered queries, all of which are needed for citations and document management.
+**ChromaDB over FAISS.** FAISS is faster for pure similarity search but it only stores vectors with no metadata and no persistence out of the box. ChromaDB stores metadata alongside the vectors, persists everything to disk automatically, and supports filtered queries, which is what makes citations possible.
 
 ## Stack
 
@@ -60,7 +60,7 @@ A few decisions worth explaining:
 
 ## Setup
 
-**Requirements:** Python 3.11 or higher, [Ollama](https://ollama.com/download) installed and running, 6 GB free disk space for model weights, and at least 8 GB RAM (16 GB recommended).
+**Requirements:** Python 3.11+, [Ollama](https://ollama.com/download) installed and running, around 6 GB free disk space for model weights, and at least 8 GB RAM.
 
 ### Native install (Windows, macOS, Linux)
 
@@ -81,17 +81,17 @@ pip install -r requirements.txt
 ollama pull llama3.1:8b
 ```
 
-Start the app:
+Then start the app:
 
 ```bash
 streamlit run app/main.py
 ```
 
-Open `http://localhost:8501` in your browser. Use the sidebar to upload PDF papers, then ask questions in the chat window. The embedding model (~440 MB) downloads automatically on first run.
+Open `http://localhost:8501`. Upload a PDF using the sidebar, and start asking questions. The embedding model (~440 MB) will download automatically on the first run.
 
 ### Docker
 
-The Docker setup runs the Streamlit app and Ollama as separate containers, which is the recommended approach for running on a server or reproducing the environment exactly.
+The Docker setup runs the app and Ollama as separate containers, which is the cleanest way to reproduce the environment on another machine.
 
 ```bash
 docker compose up --build
@@ -100,43 +100,45 @@ docker compose up --build
 docker compose exec ollama ollama pull llama3.1:8b
 ```
 
-GPU acceleration inside Docker requires the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) on Linux. Uncomment the `deploy` block in `docker-compose.yml` to enable it. On Windows and macOS, Ollama runs natively and uses the GPU automatically.
+Open `http://localhost:8501`.
+
+GPU acceleration in Docker requires the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) on Linux. Uncomment the `deploy` block in `docker-compose.yml` to enable it. On Windows and macOS, Ollama runs natively and picks up the GPU automatically.
 
 ## Configuration
 
-Copy `.env.example` to `.env` and edit as needed. All settings have sensible defaults.
+Copy `.env.example` to `.env` to override any defaults.
 
 | Variable | Default | Description |
 |---|---|---|
-| `OLLAMA_MODEL` | `llama3.1:8b` | Any model you've pulled with `ollama pull` |
-| `EMBED_MODEL` | `BAAI/bge-base-en-v1.5` | Any model from sentence-transformers |
+| `OLLAMA_MODEL` | `llama3.1:8b` | Any model pulled via `ollama pull` |
+| `EMBED_MODEL` | `BAAI/bge-base-en-v1.5` | Any sentence-transformers model |
 | `CHUNK_SIZE` | `800` | Characters per chunk |
 | `CHUNK_OVERLAP` | `100` | Overlap between consecutive chunks |
 | `TOP_K` | `5` | Passages retrieved per query |
 | `OLLAMA_HOST` | `http://localhost:11434` | Ollama API endpoint |
 
-To use a larger model (if your hardware supports it):
+To use a larger model:
 
 ```bash
 ollama pull qwen2.5:14b
 # set OLLAMA_MODEL=qwen2.5:14b in .env
 ```
 
-To index a batch of papers from the command line instead of uploading through the UI, drop PDFs into `data/papers/` and run `python ingest.py`.
+To index papers in bulk rather than uploading through the UI, drop PDFs into `data/papers/` and run `python ingest.py`.
 
 ## Extending the project
 
-The codebase is structured so that new capabilities can be added without rewriting existing components.
+The code is structured so that new features can be added without rewriting existing parts.
 
-**Swap the language model** by changing `OLLAMA_MODEL` in `.env` to any model available through Ollama. The prompt template in `src/generation/llm.py` may need tuning for models with different instruction formats.
+**Swap the LLM** by changing `OLLAMA_MODEL` in `.env`. The system prompt in `src/generation/llm.py` may need tweaking depending on the model.
 
-**Add multiple paper collections** by exposing a `collection_name` parameter in `vectorstore.py` and adding a collection selector to the sidebar. ChromaDB supports multiple named collections in the same database.
+**Multiple paper collections** can be added by exposing a `collection_name` parameter in `vectorstore.py` and adding a collection picker to the sidebar.
 
-**Persist conversation history** by accumulating the message list in `llm.py` and passing prior turns back on each request. The current implementation is stateless by design to keep responses focused on the retrieved context.
+**Conversation history** can be added by accumulating the message list in `llm.py` and passing prior turns back with each request. It's stateless by design right now to keep answers focused on the retrieved context.
 
-**Improve retrieval quality** with hybrid search, combining vector similarity with BM25 keyword matching in `retriever.py` and merging the ranked results. This helps with queries that contain rare terms or proper nouns that embeddings handle poorly.
+**Hybrid search** (vector + BM25 keyword matching) would improve results for queries with rare terms or proper nouns that embeddings don't handle well.
 
-**Add a re-ranking pass** using a cross-encoder model after the initial retrieval step. Cross-encoders score query-document pairs jointly and are significantly more accurate than bi-encoders, at the cost of being too slow for full-corpus search. Running one over the top-20 retrieved chunks to select the best 5 is a common pattern.
+**Re-ranking** with a cross-encoder after the initial retrieval step would improve precision further. The typical pattern is to retrieve the top 20 chunks, re-rank them, and pass the best 5 to the LLM.
 
 ## Acknowledgements
 
